@@ -2,8 +2,6 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'civicpulse_hackathon_jwt_secret_2026_key';
 
-// Decode a Supabase JWT payload without signature verification
-// (safe for hackathon — the token is issued by your own Supabase project)
 function decodeSupabaseToken(token) {
   try {
     const parts = token.split('.');
@@ -11,10 +9,16 @@ function decodeSupabaseToken(token) {
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
     // Supabase JWTs contain: sub (user id), email, role, user_metadata, etc.
     if (payload.sub && payload.email) {
+      const isAdmin = 
+        payload.user_metadata?.role === 'admin' ||
+        payload.role === 'admin' ||
+        payload.email.toLowerCase().includes('admin') ||
+        payload.email.toLowerCase().endsWith('@civilpulse.gov.in');
+
       return {
         id: payload.sub,
         email: payload.email,
-        role: payload.user_metadata?.role || payload.role || 'civilian',
+        role: isAdmin ? 'admin' : (payload.user_metadata?.role || 'civilian'),
         name: payload.user_metadata?.name || payload.email,
       };
     }

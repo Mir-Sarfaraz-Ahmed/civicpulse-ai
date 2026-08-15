@@ -27,13 +27,21 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
+  const resolveRole = (supaUser) => {
+    if (!supaUser) return 'civilian';
+    if (supaUser.user_metadata?.role === 'admin') return 'admin';
+    const em = (supaUser.email || '').toLowerCase();
+    if (em.includes('admin') || em.endsWith('@civilpulse.gov.in')) return 'admin';
+    return 'civilian';
+  };
+
   // Verify Supabase session on load — protect private pages
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const sessionUser = session.user;
-        const role = sessionUser.user_metadata?.role || 'civilian';
+        const role = resolveRole(sessionUser);
         setToken(session.access_token);
         setUser({ id: sessionUser.id, email: sessionUser.email, name: sessionUser.user_metadata?.name || sessionUser.email, role });
       } else {
@@ -98,14 +106,25 @@ export default function App() {
     setUser(userObj);
   };
 
-  // Standard Email + Password Register (Civilian) — via Supabase Auth
+  // Standard Email + Password Register (Civilian/Admin) — via Supabase Auth
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg(null);
     
+    const assignedRole = email.toLowerCase().includes('admin') || email.toLowerCase().endsWith('@civilpulse.gov.in') ? 'admin' : 'civilian';
+
     try {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name || email,
+            role: assignedRole
+          }
+        }
+      });
 
       if (signUpError) {
         setErrorMsg(signUpError.message || 'Registration failed.');
@@ -116,8 +135,9 @@ export default function App() {
       if (signUpData.session) {
         const sessionUser = signUpData.user;
         const sessionToken = signUpData.session.access_token;
-        saveAuthSession(sessionToken, { id: sessionUser.id, email: sessionUser.email, name: name || sessionUser.email, role: 'civilian' });
-        setPage('civilian');
+        const role = resolveRole(sessionUser);
+        saveAuthSession(sessionToken, { id: sessionUser.id, email: sessionUser.email, name: name || sessionUser.email, role });
+        setPage(role === 'admin' ? 'admin' : 'civilian');
         return;
       }
 
@@ -147,8 +167,7 @@ export default function App() {
       } else {
         const sessionUser = data.user;
         const sessionToken = data.session?.access_token || '';
-        // Determine role from Supabase user metadata (defaults to 'civilian')
-        const role = sessionUser.user_metadata?.role || 'civilian';
+        const role = resolveRole(sessionUser);
         saveAuthSession(sessionToken, { id: sessionUser.id, email: sessionUser.email, name: sessionUser.user_metadata?.name || sessionUser.email, role });
         if (role === 'admin') {
           setPage('admin');
