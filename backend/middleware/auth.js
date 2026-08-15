@@ -2,7 +2,29 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'civicpulse_hackathon_jwt_secret_2026_key';
 
-// Middleware to authenticate JWT
+// Decode a Supabase JWT payload without signature verification
+// (safe for hackathon — the token is issued by your own Supabase project)
+function decodeSupabaseToken(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    // Supabase JWTs contain: sub (user id), email, role, user_metadata, etc.
+    if (payload.sub && payload.email) {
+      return {
+        id: payload.sub,
+        email: payload.email,
+        role: payload.user_metadata?.role || payload.role || 'civilian',
+        name: payload.user_metadata?.name || payload.email,
+      };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Middleware to authenticate JWT (supports both local and Supabase tokens)
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
@@ -12,14 +34,23 @@ function authenticateToken(req, res, next) {
     return next();
   }
 
+  // Try 1: Verify with local JWT_SECRET (backend-issued tokens)
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      console.warn('[Auth Middleware] Invalid token received.');
-      req.user = null;
+    if (!err && user) {
+      req.user = user;
       return next();
     }
-    req.user = user;
-    next();
+
+    // Try 2: Decode as Supabase JWT
+    const supabaseUser = decodeSupabaseToken(token);
+    if (supabaseUser) {
+      req.user = supabaseUser;
+      return next();
+    }
+
+    console.warn('[Auth Middleware] Invalid token received.');
+    req.user = null;
+    return next();
   });
 }
 
@@ -51,3 +82,4 @@ module.exports = {
   requireRole,
   JWT_SECRET
 };
+

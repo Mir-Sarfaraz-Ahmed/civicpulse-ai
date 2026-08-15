@@ -102,10 +102,10 @@ router.post('/analyze', requireAuth, upload.single('image'), async (req, res) =>
   const imagePath = req.file.path;
   const imageUrl = `/uploads/${req.file.filename}`;
 
-  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const apiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_BACKUP_KEY].filter(Boolean);
 
-  if (!geminiApiKey) {
-    console.warn('[AI Layer] GEMINI_API_KEY is not defined. Using local heuristics engine.');
+  if (apiKeys.length === 0) {
+    console.warn('[AI Layer] No GEMINI_API_KEY defined. Using local heuristics engine.');
     const analysis = runHeuristicFallback(description, req.file.originalname);
     return res.json({
       imageUrl,
@@ -134,44 +134,68 @@ Optional location coordinates: "${latitude || 'unknown'}, ${longitude || 'unknow
 Provide ONLY the raw JSON object, without markdown syntax or triple backticks.
 `;
 
-    // Make the API request to Gemini
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-    
-    const response = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: promptText },
-              {
-                inlineData: {
-                  mimeType: req.file.mimetype,
-                  data: imageBase64
+    const candidateModels = [
+      'gemini-flash-lite-latest',
+      'gemini-flash-latest',
+      'gemini-3.7-flash',
+      'gemini-3.5-flash',
+      'gemini-3.1-flash-lite'
+    ];
+
+    let textOutput = null;
+    let successfulModel = null;
+
+    // Try available keys and candidate models
+    for (const key of apiKeys) {
+      for (const model of candidateModels) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+          const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: promptText },
+                    {
+                      inlineData: {
+                        mimeType: req.file.mimetype || 'image/jpeg',
+                        data: imageBase64
+                      }
+                    }
+                  ]
                 }
-              }
-            ]
+              ]
+            })
+          });
+
+          if (response.ok) {
+            const responseData = await response.json();
+            const output = responseData?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (output) {
+              textOutput = output;
+              successfulModel = model;
+              break;
+            }
+          } else {
+            const errText = await response.text();
+            console.warn(`[AI Layer] Model ${model} returned ${response.status}: ${errText.slice(0, 100)}`);
           }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API responded with status ${response.status}: ${errorText}`);
+        } catch (modelErr) {
+          console.warn(`[AI Layer] Model ${model} request failed:`, modelErr.message);
+        }
+      }
+      if (textOutput) break;
     }
 
-    const responseData = await response.json();
-    let textOutput = responseData?.candidates?.[0]?.content?.parts?.[0]?.text;
-    
     if (!textOutput) {
-      throw new Error('Gemini API returned an empty output content.');
+      throw new Error('All Gemini models and API keys failed to return output.');
     }
 
-    console.log('[AI Layer] Raw Gemini output:', textOutput);
+    console.log(`[AI Layer] Raw Gemini output from ${successfulModel}:`, textOutput);
     
     // Parse the output
     const cleanedJson = cleanGeminiJsonResponse(textOutput);
