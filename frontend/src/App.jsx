@@ -17,11 +17,6 @@ export default function App() {
   const [seedingLoading, setSeedingLoading] = useState(false);
 
 
-  // Google Login Simulation Modal State
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('rajesh.kumar@google.com');
-  const [googleName, setGoogleName] = useState('Rajesh Kumar');
-
   // Login Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -183,34 +178,7 @@ export default function App() {
     }
   };
 
-  // Simulated Google Sign-In Login
-  const handleGoogleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg(null);
-    setShowGoogleModal(false);
 
-    try {
-      const response = await fetch(`${API_BASE}/auth/google-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: googleEmail, name: googleName, sub: 'google-oauth-12345' })
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        saveAuthSession(data.token, data.user);
-        setPage('civilian');
-      } else {
-        setErrorMsg(data.error || 'Google Sign-in failed.');
-      }
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Network connection error.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Seed Demo Data directly from Login/Landing pages
   const handleTriggerSeeding = async () => {
@@ -337,28 +305,7 @@ export default function App() {
               </button>
             </form>
 
-            {/* Google OAuth Simulation Option */}
-            {page === 'login' && (
-              <div style={{ marginTop: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', margin: '15px 0' }}>
-                  <div style={{ flexGrow: 1, height: '1px', background: 'var(--border-light)' }} />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0 10px' }}>OR</span>
-                  <div style={{ flexGrow: 1, height: '1px', background: 'var(--border-light)' }} />
-                </div>
 
-                <button 
-                  type="button"
-                  onClick={() => setShowGoogleModal(true)}
-                  className="btn btn-secondary"
-                  style={{ width: '100%', display: 'flex', gap: '8px', color: '#fff', borderColor: 'rgba(255, 255, 255, 0.15)' }}
-                >
-                  <svg style={{ width: '16px', height: '16px' }} viewBox="0 0 24 24">
-                    <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.568 0-6.46-2.892-6.46-6.46s2.892-6.46 6.46-6.46c1.644 0 3.13.616 4.28 1.63L21.2 4.4C19.16 2.502 16.48 1.4 12.24 1.4c-5.856 0-10.6 4.744-10.6 10.6s4.744 10.6 10.6 10.6c6.12 0 10.9-4.322 10.9-10.9 0-.608-.052-1.127-.16-1.615H12.24z"/>
-                  </svg>
-                  Sign In with Google
-                </button>
-              </div>
-            )}
 
             {/* Toggle Login/Register */}
             <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -408,52 +355,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Simulated Google Sign-In Profile chooser Dialog Modal */}
-      {showGoogleModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-card" style={{ width: '100%', maxWidth: '380px', borderColor: 'var(--primary-neon)', background: 'var(--bg-main)' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-              Google Sign-In Simulator
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-              Choose a mockup Google profile name and email address to test the OAuth account association logic.
-            </p>
 
-            <form onSubmit={handleGoogleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Google Account Name</label>
-                <input 
-                  type="text" 
-                  value={googleName} 
-                  onChange={(e) => setGoogleName(e.target.value)} 
-                  className="form-input" 
-                  required 
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Google Account Email</label>
-                <input 
-                  type="email" 
-                  value={googleEmail} 
-                  onChange={(e) => setGoogleEmail(e.target.value)} 
-                  className="form-input" 
-                  required 
-                />
-              </div>
-
-              <div className="flex-row-between" style={{ marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowGoogleModal(false)} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                  Acknowledge Sign-In
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
 
 
