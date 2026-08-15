@@ -96,8 +96,8 @@ export default function App() {
     // Quick fill helper for admin login option
     if (targetPage === 'login') {
       if (options.defaultAdmin) {
-        setEmail('admin@civilpulse.gov.in');
-        setPassword('AdminSecurePassword123');
+        setEmail('admin@gmail.com');
+        setPassword('31102006');
       } else if (!options.keepEmail) {
         // Only clear email if not coming from a signup redirect
         setEmail('');
@@ -229,8 +229,8 @@ export default function App() {
       if (response.ok) {
         setSuccessMsg('Demo database seeded successfully! Mock incidents created.');
         // Set demo admin credentials automatically for ease
-        setEmail('admin@civilpulse.gov.in');
-        setPassword('AdminSecurePassword123');
+        setEmail('admin@gmail.com');
+        setPassword('31102006');
       } else {
         setErrorMsg(data.error || 'Seeding failed.');
       }
@@ -382,8 +382,8 @@ export default function App() {
               </button>
 
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div>🔑 Admin: <span style={{ color: '#fff', fontFamily: 'monospace' }}>admin@civilpulse.gov.in</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>AdminSecurePassword123</span></div>
-                <div>👤 Civilian: <span style={{ color: '#fff', fontFamily: 'monospace' }}>civilian@civilpulse.gov.in</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>Password123</span></div>
+                <div>🔑 Admin: <span style={{ color: '#fff', fontFamily: 'monospace' }}>admin@gmail.com</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>31102006</span></div>
+                <div>👤 Civilian: <span style={{ color: '#fff', fontFamily: 'monospace' }}>civilian@gmail.com</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>Password123</span></div>
               </div>
             </div>
 
