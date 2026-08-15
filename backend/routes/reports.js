@@ -311,7 +311,7 @@ router.post('/submit', requireAuth, (req, res) => {
 router.get('/my-reports', requireAuth, (req, res) => {
   try {
     const reports = query.all(
-      `SELECT r.*, i.status, i.priority_score
+      `SELECT r.*, i.status, i.priority_score, i.assigned_worker, i.dispatch_notes, i.resolution_evidence_url, i.resolved_at, i.closed_at
        FROM reports r
        LEFT JOIN incidents i ON r.incident_id = i.id
        WHERE r.citizen_id = ?
@@ -321,6 +321,52 @@ router.get('/my-reports', requireAuth, (req, res) => {
     res.json(reports);
   } catch (err) {
     console.error('[Reports Error] Failed to fetch citizen reports:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// 3.5. Civilian Report Details & Authority Action History (Protected)
+// Endpoint: GET /api/reports/:id/details
+router.get('/:id/details', requireAuth, (req, res) => {
+  const reportId = req.params.id;
+
+  try {
+    const report = query.get('SELECT * FROM reports WHERE id = ?', [reportId]);
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found.' });
+    }
+
+    if (report.citizen_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: You do not own this report.' });
+    }
+
+    let incident = null;
+    let history = [];
+
+    if (report.incident_id) {
+      incident = query.get('SELECT * FROM incidents WHERE id = ?', [report.incident_id]);
+      history = query.all(
+        `SELECT h.*, COALESCE(u.name, 'Authority Officer') as actor_name
+         FROM incident_status_history h
+         LEFT JOIN users u ON h.changed_by = u.id
+         WHERE h.incident_id = ?
+         ORDER BY h.created_at ASC`,
+        [report.incident_id]
+      );
+    }
+
+    res.json({
+      report,
+      incident: incident || {
+        status: 'Reported',
+        priority_score: 50,
+        category: report.ai_category,
+        severity: report.ai_severity
+      },
+      history
+    });
+  } catch (err) {
+    console.error('[Reports Error] Failed to fetch report details:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });

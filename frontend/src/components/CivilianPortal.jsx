@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Image, MapPin, Search, PlusCircle, List, ArrowLeft, ArrowRight, Loader, Check, Trash2, HelpCircle } from 'lucide-react';
+import { Camera, Image, MapPin, Search, PlusCircle, List, ArrowLeft, ArrowRight, Loader, Check, Trash2, HelpCircle, Eye, Shield, Truck, Wrench, CheckCircle, Clock, X, ZoomIn, Maximize2, ExternalLink, AlertCircle, FileText, User } from 'lucide-react';
 import MapComponent from './MapComponent';
 
 const API_BASE = 'http://localhost:5000/api';
@@ -22,6 +22,24 @@ export default function CivilianPortal({ token, onBackToLanding }) {
   const [submitting, setSubmitting] = useState(false);
   const [trackingId, setTrackingId] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Tracking & Authority Action Details Modal State
+  const [selectedReportId, setSelectedReportId] = useState(null);
+  const [trackingDetails, setTrackingDetails] = useState(null);
+  const [loadingTracking, setLoadingTracking] = useState(false);
+  const [modalImage, setModalImage] = useState(null);
+
+  // Close modals on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (modalImage) setModalImage(null);
+        else if (selectedReportId) setSelectedReportId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalImage, selectedReportId]);
 
   // Fetch civilian reports on load
   useEffect(() => {
@@ -50,6 +68,31 @@ export default function CivilianPortal({ token, onBackToLanding }) {
       setErrorMsg('Network error fetching reports.');
     } finally {
       setLoadingList(false);
+    }
+  };
+
+  // Fetch complete timeline and authority actions for a single report
+  const handleOpenTracking = async (reportId) => {
+    setSelectedReportId(reportId);
+    setLoadingTracking(true);
+    setTrackingDetails(null);
+    try {
+      const response = await fetch(`${API_BASE}/reports/${reportId}/details`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setTrackingDetails(data);
+      } else {
+        alert(data.error || 'Failed to load tracking details.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error loading tracking details.');
+    } finally {
+      setLoadingTracking(false);
     }
   };
 
@@ -326,9 +369,34 @@ export default function CivilianPortal({ token, onBackToLanding }) {
                 </thead>
                 <tbody>
                   {reports.map((rep) => (
-                    <tr key={rep.id} style={{ borderBottom: '1px solid var(--border-light)', fontSize: '0.9rem' }}>
+                    <tr 
+                      key={rep.id} 
+                      style={{ 
+                        borderBottom: '1px solid var(--border-light)', 
+                        fontSize: '0.9rem',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
                       <td style={{ padding: '16px 8px', fontWeight: 600, color: 'var(--primary-neon)' }}>
-                        {rep.id.substring(0, 8)}...
+                        <button 
+                          onClick={() => handleOpenTracking(rep.id)}
+                          style={{ 
+                            background: 'none', 
+                            border: 'none', 
+                            color: 'var(--primary-neon)', 
+                            fontWeight: 700, 
+                            cursor: 'pointer',
+                            padding: 0,
+                            fontFamily: 'monospace',
+                            fontSize: '0.9rem',
+                            textDecoration: 'underline'
+                          }}
+                          title="Click to track live authority action progress"
+                        >
+                          {rep.id.substring(0, 8)}...
+                        </button>
                       </td>
                       <td style={{ padding: '16px 8px' }}>
                         <div style={{ fontWeight: 600 }}>{rep.ai_problem}</div>
@@ -356,14 +424,33 @@ export default function CivilianPortal({ token, onBackToLanding }) {
                         {new Date(rep.created_at).toLocaleDateString()}
                       </td>
                       <td style={{ padding: '16px 8px', textAlign: 'right' }}>
-                        <button 
-                          onClick={() => handleDeleteReport(rep.id)} 
-                          className="btn btn-danger" 
-                          title="Withdraw Report"
-                          style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                          <button 
+                            onClick={() => handleOpenTracking(rep.id)}
+                            className="btn btn-secondary"
+                            style={{ 
+                              padding: '6px 12px', 
+                              fontSize: '0.78rem', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '5px',
+                              borderColor: 'rgba(0, 242, 254, 0.3)',
+                              color: 'var(--primary-neon)',
+                              background: 'rgba(0, 242, 254, 0.05)'
+                            }}
+                            title="View Live Authority Actions, Dispatch Notes, and Resolution Logs"
+                          >
+                            <Eye size={13} /> View Actions
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteReport(rep.id)} 
+                            className="btn btn-danger" 
+                            title="Withdraw Report"
+                            style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -654,6 +741,488 @@ export default function CivilianPortal({ token, onBackToLanding }) {
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* ─── LIVE INCIDENT TRACKING & AUTHORITY ACTION MODAL ─── */}
+      {selectedReportId && (
+        <div 
+          onClick={() => setSelectedReportId(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 9000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="glass-card"
+            style={{
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: '24px',
+              background: 'var(--bg-main)',
+              border: '1px solid rgba(0, 242, 254, 0.35)',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 242, 254, 0.15)',
+              position: 'relative'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-light)', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--primary-neon)', background: 'rgba(0,242,254,0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(0,242,254,0.2)' }}>
+                    TRACKING ID: {selectedReportId}
+                  </span>
+                  {trackingDetails?.incident?.status && (
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      background: `${getStatusColor(trackingDetails.incident.status)}22`,
+                      color: getStatusColor(trackingDetails.incident.status),
+                      border: `1px solid ${getStatusColor(trackingDetails.incident.status)}55`,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: getStatusColor(trackingDetails.incident.status) }} />
+                      {trackingDetails.incident.status}
+                    </span>
+                  )}
+                </div>
+                <h2 style={{ fontSize: '1.4rem', color: '#fff', margin: 0 }}>
+                  {trackingDetails?.report?.ai_problem || 'Incident Progress & Authority Actions'}
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
+                  📍 {trackingDetails?.report?.address || 'Delhi, India'}
+                </p>
+              </div>
+
+              <button 
+                onClick={() => setSelectedReportId(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  padding: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 0, 85, 0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {loadingTracking ? (
+              <div className="flex-row-center" style={{ padding: '60px 0', flexDirection: 'column', gap: '15px' }}>
+                <Loader className="pulse-glow" style={{ animation: 'spin 1.5s infinite linear', color: 'var(--primary-neon)' }} />
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading live authority logs & action status...</p>
+              </div>
+            ) : trackingDetails ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* 1. Visual Progress Stepper Bar */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-light)', borderRadius: '12px', padding: '16px 20px' }}>
+                  <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>
+                    Workflow Resolution Stages
+                  </h4>
+
+                  {(() => {
+                    const stages = [
+                      { id: 'Reported', label: 'Reported', desc: 'Citizen registered' },
+                      { id: 'AI Analysed', label: 'AI Analysed', desc: 'Severity ranked' },
+                      { id: 'Verified', label: 'Verified', desc: 'Admin approved' },
+                      { id: 'Dispatched', label: 'Dispatched', desc: 'Worker assigned' },
+                      { id: 'In Progress', label: 'In Progress', desc: 'Action on site' },
+                      { id: 'Resolved', label: 'Resolved / Closed', desc: 'Proof submitted' }
+                    ];
+
+                    const statusOrder = ['Reported', 'AI Analysed', 'Verified', 'Assigned', 'Dispatched', 'In Progress', 'Resolved', 'Closed'];
+                    const currentStatus = trackingDetails.incident.status || 'Reported';
+                    const currentIndex = statusOrder.indexOf(currentStatus);
+
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' }}>
+                        {stages.map((stage, idx) => {
+                          const stageIndex = statusOrder.indexOf(stage.id === 'Resolved' ? 'Resolved' : stage.id);
+                          const isCompleted = currentIndex >= stageIndex;
+                          const isCurrent = currentStatus === stage.id || (stage.id === 'Resolved' && (currentStatus === 'Resolved' || currentStatus === 'Closed'));
+
+                          return (
+                            <div 
+                              key={stage.id} 
+                              style={{ 
+                                textAlign: 'center', 
+                                padding: '10px 6px',
+                                borderRadius: '8px',
+                                background: isCurrent ? 'rgba(0, 242, 254, 0.1)' : isCompleted ? 'rgba(0, 230, 118, 0.05)' : 'rgba(255, 255, 255, 0.01)',
+                                border: isCurrent ? '1px solid var(--primary-neon)' : isCompleted ? '1px solid rgba(0, 230, 118, 0.3)' : '1px solid var(--border-light)',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <div style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '50%',
+                                background: isCompleted ? 'var(--color-low)' : 'rgba(255, 255, 255, 0.1)',
+                                color: isCompleted ? '#000' : 'var(--text-muted)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 8px',
+                                fontWeight: 700,
+                                fontSize: '0.75rem'
+                              }}>
+                                {isCompleted ? <Check size={14} /> : idx + 1}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: isCurrent ? 'var(--primary-neon)' : isCompleted ? '#fff' : 'var(--text-muted)' }}>
+                                {stage.label}
+                              </div>
+                              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                {stage.desc}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* 2. Authority Dispatch & Field Action Summary Box */}
+                <div className="glass-card" style={{ borderColor: 'rgba(155, 81, 224, 0.3)', background: 'rgba(155, 81, 224, 0.03)', padding: '16px 20px' }}>
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--secondary-neon)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <Shield size={16} /> Official Authority Actions & Dispatch
+                  </h4>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Assigned Field Worker</span>
+                      <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <User size={15} style={{ color: 'var(--primary-neon)' }} />
+                        {trackingDetails.incident.assigned_worker || 'Awaiting Worker Dispatch'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Dispatch Notes / Log</span>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
+                        {trackingDetails.incident.dispatch_notes || 'No dispatch notes recorded yet.'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>AI Computed Priority Score</span>
+                      <div style={{ color: 'var(--primary-neon)', fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>
+                        {trackingDetails.incident.priority_score}/100 Rank
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Evidence and Resolution Photos Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: trackingDetails.incident.resolution_evidence_url ? '1fr 1fr' : '1fr', gap: '16px' }}>
+                  
+                  {/* Citizen Original Evidence Photo */}
+                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-light)', borderRadius: '10px', padding: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#fff' }}>Your Evidence Photo:</strong>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--primary-neon)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <ZoomIn size={12} /> Click to Enlarge
+                      </span>
+                    </div>
+
+                    <div 
+                      onClick={() => setModalImage({
+                        url: `http://localhost:5000${trackingDetails.report.image_url}`,
+                        title: 'Your Evidence Photo',
+                        subtitle: `Reported on ${new Date(trackingDetails.report.created_at).toLocaleString()}`,
+                        description: trackingDetails.report.description || 'No user notes provided.',
+                        summary: trackingDetails.report.ai_summary,
+                        badge: 'Citizen Evidence'
+                      })}
+                      style={{ height: '140px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-light)', cursor: 'pointer', position: 'relative' }}
+                    >
+                      <img 
+                        src={`http://localhost:5000${trackingDetails.report.image_url}`} 
+                        alt="Citizen evidence" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                      <div style={{ position: 'absolute', bottom: 0, insetInline: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '4px 8px', fontSize: '0.72rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Maximize2 size={12} style={{ color: 'var(--primary-neon)' }} /> View Full Photo
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '8px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      <strong>User Notes:</strong> "{trackingDetails.report.description || 'None'}"
+                    </div>
+                  </div>
+
+                  {/* Authority Resolution Evidence Proof (if available) */}
+                  {trackingDetails.incident.resolution_evidence_url && (
+                    <div style={{ background: 'rgba(0, 230, 118, 0.03)', border: '1px solid rgba(0, 230, 118, 0.3)', borderRadius: '10px', padding: '14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong style={{ fontSize: '0.85rem', color: 'var(--color-low)' }}>✓ Authority Resolution Proof:</strong>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <ZoomIn size={12} /> Click to Enlarge
+                        </span>
+                      </div>
+
+                      <div 
+                        onClick={() => setModalImage({
+                          url: `http://localhost:5000${trackingDetails.incident.resolution_evidence_url}`,
+                          title: 'Official Resolution Proof',
+                          subtitle: trackingDetails.incident.assigned_worker ? `Work completed by ${trackingDetails.incident.assigned_worker}` : 'Authority Completion Proof',
+                          description: trackingDetails.incident.dispatch_notes || 'Official completion photo uploaded by administrative supervisor.',
+                          badge: 'Resolution Proof'
+                        })}
+                        style={{ height: '140px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(0, 230, 118, 0.4)', cursor: 'pointer', position: 'relative' }}
+                      >
+                        <img 
+                          src={`http://localhost:5000${trackingDetails.incident.resolution_evidence_url}`} 
+                          alt="Resolution proof" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                        <div style={{ position: 'absolute', bottom: 0, insetInline: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', padding: '4px 8px', fontSize: '0.72rem', color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle size={12} /> Verified Resolution Proof
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '8px', fontSize: '0.78rem', color: 'var(--color-low)' }}>
+                        Status: <strong>Incident Closed & Resolved</strong>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* 4. Complete Status History & Action Audit Trail */}
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', marginBottom: '12px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <Clock size={16} /> Complete Status History & Actions Taken
+                  </h4>
+                  
+                  {trackingDetails.history && trackingDetails.history.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderLeft: '2px solid rgba(0,242,254,0.3)', paddingLeft: '16px', marginLeft: '6px' }}>
+                      {trackingDetails.history.map((h) => (
+                        <div key={h.id} style={{ position: 'relative', fontSize: '0.82rem' }}>
+                          {/* Indicator dot */}
+                          <div style={{
+                            position: 'absolute',
+                            left: '-21px',
+                            top: '4px',
+                            width: '9px',
+                            height: '9px',
+                            borderRadius: '50%',
+                            background: getStatusColor(h.status),
+                            boxShadow: `0 0 8px ${getStatusColor(h.status)}`
+                          }} />
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '6px' }}>
+                            <strong style={{ color: getStatusColor(h.status) }}>{h.status}</strong>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                              {new Date(h.created_at).toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '2px' }}>
+                            Action by: <span style={{ color: '#fff' }}>{h.actor_name}</span>
+                          </div>
+
+                          {h.notes && (
+                            <div style={{ color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '6px 10px', marginTop: '4px', lineHeight: 1.4 }}>
+                              "{h.notes}"
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No status actions recorded yet.</p>
+                  )}
+                </div>
+
+                <div style={{ textAlign: 'right', marginTop: '10px' }}>
+                  <button onClick={() => setSelectedReportId(null)} className="btn btn-secondary" style={{ padding: '8px 20px' }}>
+                    Close Window
+                  </button>
+                </div>
+
+              </div>
+            ) : null}
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── Lightbox Image Popup Modal ─── */}
+      {modalImage && (
+        <div 
+          onClick={() => setModalImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="glass-card"
+            style={{
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '0',
+              overflow: 'hidden',
+              background: 'var(--bg-main)',
+              border: '1px solid rgba(0, 242, 254, 0.4)',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 242, 254, 0.2)',
+              position: 'relative'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 18px',
+              borderBottom: '1px solid var(--border-light)',
+              background: 'rgba(255, 255, 255, 0.02)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  background: modalImage.badge === 'Resolution Proof' ? 'rgba(0, 230, 118, 0.15)' : 'rgba(0, 242, 254, 0.15)',
+                  color: modalImage.badge === 'Resolution Proof' ? 'var(--color-low)' : 'var(--primary-neon)',
+                  border: `1px solid ${modalImage.badge === 'Resolution Proof' ? 'rgba(0, 230, 118, 0.3)' : 'rgba(0, 242, 254, 0.3)'}`
+                }}>
+                  {modalImage.badge}
+                </span>
+                <div>
+                  <h3 style={{ fontSize: '1rem', color: '#fff', margin: 0 }}>
+                    {modalImage.title}
+                  </h3>
+                  {modalImage.subtitle && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {modalImage.subtitle}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a 
+                  href={modalImage.url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="btn btn-secondary" 
+                  style={{ padding: '5px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <ExternalLink size={12} /> Open Tab
+                </a>
+                <button 
+                  onClick={() => setModalImage(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    padding: '5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Close (Esc)"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Image Area */}
+            <div style={{
+              background: '#070b13',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              maxHeight: '55vh',
+              overflow: 'hidden',
+              padding: '12px'
+            }}>
+              <img 
+                src={modalImage.url} 
+                alt="Enlarged" 
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '52vh',
+                  objectFit: 'contain',
+                  borderRadius: '6px'
+                }}
+              />
+            </div>
+
+            {/* Modal Details / Meta Info */}
+            <div style={{
+              padding: '14px 18px',
+              borderTop: '1px solid var(--border-light)',
+              background: 'rgba(255, 255, 255, 0.02)',
+              fontSize: '0.82rem'
+            }}>
+              {modalImage.description && (
+                <div style={{ marginBottom: '6px', color: 'var(--text-muted)' }}>
+                  <strong style={{ color: '#fff' }}>Notes:</strong> "{modalImage.description}"
+                </div>
+              )}
+              {modalImage.summary && (
+                <div style={{
+                  background: 'rgba(0, 242, 254, 0.06)',
+                  border: '1px solid rgba(0, 242, 254, 0.2)',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  color: 'var(--primary-neon)',
+                  fontSize: '0.78rem',
+                  lineHeight: 1.4
+                }}>
+                  <strong>AI Summary:</strong> {modalImage.summary}
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
       )}
 
