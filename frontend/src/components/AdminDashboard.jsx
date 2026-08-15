@@ -670,7 +670,7 @@ export default function AdminDashboard({ token, user, onLogout, onBackToHome }) 
 
                   {/* 5. Step: In Progress -> Resolved */}
                   {selectedDetails.incident.status === 'In Progress' ? (
-                    <form onSubmit={handleResolveUpload} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <form onSubmit={handleResolveIncident} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <span className="form-label" style={{ fontSize: '0.7rem' }}>Resolution Photo Proof (Required)</span>
                       
                       <input 
