@@ -383,7 +383,7 @@ export default function App() {
 
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div>🔑 Admin: <span style={{ color: '#fff', fontFamily: 'monospace' }}>admin@gmail.com</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>31102006</span></div>
-                <div>👤 Civilian: <span style={{ color: '#fff', fontFamily: 'monospace' }}>civilian@gmail.com</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>Password123</span></div>
+                <div>👤 Civilian: <span style={{ color: '#fff', fontFamily: 'monospace' }}>civilian@gmail.com</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>31102006</span></div>
               </div>
             </div>
 
