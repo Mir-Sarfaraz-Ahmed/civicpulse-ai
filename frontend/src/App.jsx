@@ -4,8 +4,7 @@ import LandingPage from './components/LandingPage';
 import CivilianPortal from './components/CivilianPortal';
 import AdminDashboard from './components/AdminDashboard';
 import { supabase } from './supabaseClient';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from './config';
 
 export default function App() {
   const [page, setPage] = useState('landing'); // 'landing', 'login', 'register', 'civilian', 'admin'

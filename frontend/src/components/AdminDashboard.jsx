@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Eye, Flame, MapPin, CheckCircle, ArrowLeft, ArrowRight, Loader, User, Calendar, FileText, Clipboard, Truck, Wrench, Check, CheckSquare, Upload, AlertTriangle, Users, X, ZoomIn, Maximize2, ExternalLink, Home, LogOut, RefreshCw } from 'lucide-react';
 import MapComponent from './MapComponent';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE, getImageUrl } from '../config';
 
 const PREDEFINED_WORKERS = [
   "Amit Sharma (PWD Road Repair)",
@@ -502,7 +501,7 @@ export default function AdminDashboard({ token, user, onLogout, onBackToHome }) 
                       </div>
                       <div 
                         onClick={() => setModalImage({
-                          url: `http://localhost:5000${selectedDetails.incident.resolution_evidence_url}`,
+                          url: getImageUrl(selectedDetails.incident.resolution_evidence_url),
                           title: 'Resolution Proof Evidence',
                           subtitle: selectedDetails.incident.assigned_worker ? `Resolved by ${selectedDetails.incident.assigned_worker}` : 'Authority Resolution Evidence',
                           description: selectedDetails.incident.dispatch_notes || 'Official proof of work completion.',
@@ -528,7 +527,7 @@ export default function AdminDashboard({ token, user, onLogout, onBackToHome }) 
                         }}
                       >
                         <img 
-                          src={`http://localhost:5000${selectedDetails.incident.resolution_evidence_url}`} 
+                          src={getImageUrl(selectedDetails.incident.resolution_evidence_url)} 
                           alt="Resolution Proof" 
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                         />
@@ -749,7 +748,7 @@ export default function AdminDashboard({ token, user, onLogout, onBackToHome }) 
                         {/* Clickable Image Thumbnail with Zoom Overlay */}
                         <div 
                           onClick={() => setModalImage({
-                            url: `http://localhost:5000${rep.image_url}`,
+                            url: getImageUrl(rep.image_url),
                             title: `Citizen Evidence — ${rep.citizen_name}`,
                             subtitle: `Reported on ${new Date(rep.created_at).toLocaleString()}`,
                             description: rep.description || 'No additional user notes provided.',
@@ -780,7 +779,7 @@ export default function AdminDashboard({ token, user, onLogout, onBackToHome }) 
                           title="Click to view full-size image"
                         >
                           <img 
-                            src={`http://localhost:5000${rep.image_url}`} 
+                            src={getImageUrl(rep.image_url)} 
                             alt="Citizen evidence" 
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                           />

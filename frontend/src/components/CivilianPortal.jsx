@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Image, MapPin, Search, PlusCircle, List, ArrowLeft, ArrowRight, Loader, Check, Trash2, HelpCircle, Eye, Shield, Truck, Wrench, CheckCircle, Clock, X, ZoomIn, Maximize2, ExternalLink, AlertCircle, FileText, User, Home, LogOut } from 'lucide-react';
 import MapComponent from './MapComponent';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE, getImageUrl } from '../config';
 
 export default function CivilianPortal({ token, user, onLogout, onBackToHome }) {
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'report'
@@ -1019,7 +1018,7 @@ export default function CivilianPortal({ token, user, onLogout, onBackToHome }) 
 
                     <div 
                       onClick={() => setModalImage({
-                        url: `http://localhost:5000${trackingDetails.report.image_url}`,
+                        url: getImageUrl(trackingDetails.report.image_url),
                         title: 'Your Evidence Photo',
                         subtitle: `Reported on ${new Date(trackingDetails.report.created_at).toLocaleString()}`,
                         description: trackingDetails.report.description || 'No user notes provided.',
@@ -1029,7 +1028,7 @@ export default function CivilianPortal({ token, user, onLogout, onBackToHome }) 
                       style={{ height: '140px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-light)', cursor: 'pointer', position: 'relative' }}
                     >
                       <img 
-                        src={`http://localhost:5000${trackingDetails.report.image_url}`} 
+                        src={getImageUrl(trackingDetails.report.image_url)} 
                         alt="Citizen evidence" 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
@@ -1055,7 +1054,7 @@ export default function CivilianPortal({ token, user, onLogout, onBackToHome }) 
 
                       <div 
                         onClick={() => setModalImage({
-                          url: `http://localhost:5000${trackingDetails.incident.resolution_evidence_url}`,
+                          url: getImageUrl(trackingDetails.incident.resolution_evidence_url),
                           title: 'Official Resolution Proof',
                           subtitle: trackingDetails.incident.assigned_worker ? `Work completed by ${trackingDetails.incident.assigned_worker}` : 'Authority Completion Proof',
                           description: trackingDetails.incident.dispatch_notes || 'Official completion photo uploaded by administrative supervisor.',
@@ -1064,7 +1063,7 @@ export default function CivilianPortal({ token, user, onLogout, onBackToHome }) 
                         style={{ height: '140px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(0, 230, 118, 0.4)', cursor: 'pointer', position: 'relative' }}
                       >
                         <img 
-                          src={`http://localhost:5000${trackingDetails.incident.resolution_evidence_url}`} 
+                          src={getImageUrl(trackingDetails.incident.resolution_evidence_url)} 
                           alt="Resolution proof" 
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                         />
