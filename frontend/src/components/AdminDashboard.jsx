@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Eye, Flame, MapPin, CheckCircle, ArrowLeft, ArrowRight, Loader, User, Calendar, FileText, Clipboard, Truck, Wrench, Check, CheckSquare, Upload, AlertTriangle, Users, X, ZoomIn, Maximize2, ExternalLink } from 'lucide-react';
+import { Shield, Eye, Flame, MapPin, CheckCircle, ArrowLeft, ArrowRight, Loader, User, Calendar, FileText, Clipboard, Truck, Wrench, Check, CheckSquare, Upload, AlertTriangle, Users, X, ZoomIn, Maximize2, ExternalLink, Home, LogOut, RefreshCw } from 'lucide-react';
 import MapComponent from './MapComponent';
 
 const API_BASE = 'http://localhost:5000/api';
@@ -20,7 +20,7 @@ const PREDEFINED_DISPATCH = [
   "Traffic warden team dispatched for manual routing."
 ];
 
-export default function AdminDashboard({ token, onBackToLanding }) {
+export default function AdminDashboard({ token, user, onLogout, onBackToHome }) {
   const [incidents, setIncidents] = useState([]);
   const [stats, setStats] = useState({ totalActive: 0, critical: 0, highPriority: 0, resolved: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
@@ -125,7 +125,7 @@ export default function AdminDashboard({ token, onBackToLanding }) {
       
       const data = await res.json();
       if (res.ok) {
-        setActionSuccess(`Status successfully transitioned to: ${data.status}`);
+        setActionSuccess(`Status updated to: ${data.status}`);
         // Reset forms
         setWorkerName('');
         setDispatchNotes('');
@@ -134,21 +134,21 @@ export default function AdminDashboard({ token, onBackToLanding }) {
         fetchDashboardData();
         fetchIncidentDetails(selectedIncidentId);
       } else {
-        setActionError(data.error || 'Action failed.');
+        setActionError(data.error || 'Failed to transition state.');
       }
     } catch (err) {
       console.error(err);
-      setActionError('Network error performing action.');
+      setActionError('Network error during action.');
     } finally {
       setSubmittingAction(false);
     }
   };
 
-  // Special handler for Resolve Upload action (needs multipart formdata)
-  const handleResolveUpload = async (e) => {
+  // Dedicated resolve handler (multipart/form-data for image evidence)
+  const handleResolveIncident = async (e) => {
     e.preventDefault();
     if (!evidenceFile) {
-      setActionError('Please select a resolution proof image file.');
+      setActionError('Resolution evidence image is required to resolve.');
       return;
     }
 
@@ -158,7 +158,7 @@ export default function AdminDashboard({ token, onBackToLanding }) {
 
     const formData = new FormData();
     formData.append('evidence', evidenceFile);
-    formData.append('notes', actionNotes || 'Resolved during verification.');
+    formData.append('notes', actionNotes || 'Issue verified and repaired on site.');
 
     try {
       const res = await fetch(`${API_BASE}/incidents/${selectedIncidentId}/resolve`, {
@@ -171,7 +171,7 @@ export default function AdminDashboard({ token, onBackToLanding }) {
 
       const data = await res.json();
       if (res.ok) {
-        setActionSuccess('Incident resolved successfully! Evidence photo registered.');
+        setActionSuccess('Incident marked as Resolved with evidence photo!');
         setEvidenceFile(null);
         setActionNotes('');
         fetchDashboardData();
@@ -215,18 +215,83 @@ export default function AdminDashboard({ token, onBackToLanding }) {
     <div className="admin-dashboard container" style={{ paddingTop: '30px', paddingBottom: '80px' }}>
       
       {/* Dashboard Top Header */}
-      <div className="flex-row-between" style={{ marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
+      <div className="flex-row-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
         <div>
-          <button onClick={onBackToLanding} className="btn btn-secondary" style={{ padding: '8px 12px', marginBottom: '10px' }}>
-            <ArrowLeft size={16} /> Exit Dashboard
-          </button>
-          <h1 style={{ fontSize: '2.2rem' }} className="text-gradient">Authority Command Center</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>AI-powered Incident Priorities and Grouping Dashboard</p>
+          <h1 style={{ fontSize: '2.2rem', margin: 0 }} className="text-gradient">Authority Command Center</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '4px' }}>AI-powered Incident Priorities and Grouping Dashboard</p>
         </div>
 
-        <button onClick={fetchDashboardData} className="btn btn-secondary" style={{ display: 'flex', gap: '8px' }}>
-          Refresh Feeds
-        </button>
+        {/* Admin Identity & Navigation Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {user && (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-light)',
+              borderRadius: '10px',
+              padding: '6px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ff0055, #9b51e0)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                color: '#fff',
+                fontSize: '0.85rem'
+              }}>
+                {user.name ? user.name[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : 'A')}
+              </div>
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {user.name || user.email}
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(255, 0, 85, 0.2)',
+                    color: 'var(--color-critical)',
+                    border: '1px solid rgba(255, 0, 85, 0.3)'
+                  }}>
+                    ADMIN
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {user.email}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button onClick={fetchDashboardData} className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+
+          <button 
+            onClick={onBackToHome} 
+            className="btn btn-secondary" 
+            style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Return to homepage without signing out"
+          >
+            <Home size={15} /> Home
+          </button>
+
+          <button 
+            onClick={onLogout} 
+            className="btn btn-danger" 
+            style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Sign out of Admin Console"
+          >
+            <LogOut size={15} /> Sign Out
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards Section */}

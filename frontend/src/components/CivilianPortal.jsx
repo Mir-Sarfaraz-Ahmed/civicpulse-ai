@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Image, MapPin, Search, PlusCircle, List, ArrowLeft, ArrowRight, Loader, Check, Trash2, HelpCircle, Eye, Shield, Truck, Wrench, CheckCircle, Clock, X, ZoomIn, Maximize2, ExternalLink, AlertCircle, FileText, User } from 'lucide-react';
+import { Camera, Image, MapPin, Search, PlusCircle, List, ArrowLeft, ArrowRight, Loader, Check, Trash2, HelpCircle, Eye, Shield, Truck, Wrench, CheckCircle, Clock, X, ZoomIn, Maximize2, ExternalLink, AlertCircle, FileText, User, Home, LogOut } from 'lucide-react';
 import MapComponent from './MapComponent';
 
 const API_BASE = 'http://localhost:5000/api';
 
-export default function CivilianPortal({ token, onBackToLanding }) {
+export default function CivilianPortal({ token, user, onLogout, onBackToHome }) {
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'report'
   const [reports, setReports] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -300,17 +300,83 @@ export default function CivilianPortal({ token, onBackToLanding }) {
   return (
     <div className="civilian-portal container" style={{ paddingTop: '30px', paddingBottom: '80px' }}>
       
-      {/* Portal Header */}
-      <div className="flex-row-between" style={{ marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
+      {/* Portal Top Header */}
+      <div className="flex-row-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
         <div>
-          <button onClick={onBackToLanding} className="btn btn-secondary" style={{ padding: '8px 12px', marginBottom: '10px' }}>
-            <ArrowLeft size={16} /> Back to Home
-          </button>
-          <h1 style={{ fontSize: '2rem' }}>Civilian Reporting Center</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Submit and monitor local urban incidents</p>
+          <h1 style={{ fontSize: '2rem', margin: 0 }}>Civilian Reporting Center</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>Submit and monitor local urban incidents</p>
         </div>
 
-        {/* Tab Controls */}
+        {/* User Account Details & Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {user && (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-light)',
+              borderRadius: '10px',
+              padding: '6px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--primary-neon), var(--secondary-neon))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                color: '#000',
+                fontSize: '0.85rem'
+              }}>
+                {user.name ? user.name[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : 'C')}
+              </div>
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {user.name || user.email}
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(0, 242, 254, 0.15)',
+                    color: 'var(--primary-neon)'
+                  }}>
+                    {user.role || 'Citizen'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {user.email}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button 
+            onClick={onBackToHome} 
+            className="btn btn-secondary" 
+            style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Go to Homepage without signing out"
+          >
+            <Home size={15} /> Home
+          </button>
+
+          <button 
+            onClick={onLogout} 
+            className="btn btn-danger" 
+            style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Sign out of your account"
+          >
+            <LogOut size={15} /> Sign Out
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Controls Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '10px', border: '1px solid var(--border-light)' }}>
           <button 
             onClick={() => setActiveTab('list')} 

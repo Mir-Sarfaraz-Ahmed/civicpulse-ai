@@ -221,14 +221,18 @@ export default function App() {
       {page === 'civilian' && token && (
         <CivilianPortal 
           token={token} 
-          onBackToLanding={handleLogout} 
+          user={user}
+          onLogout={handleLogout}
+          onBackToHome={() => setPage('landing')} 
         />
       )}
 
       {page === 'admin' && token && (
         <AdminDashboard 
           token={token} 
-          onBackToLanding={handleLogout} 
+          user={user}
+          onLogout={handleLogout}
+          onBackToHome={() => setPage('landing')} 
         />
       )}
 
