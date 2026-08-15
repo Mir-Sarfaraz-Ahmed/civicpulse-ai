@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Eye, Flame, MapPin, CheckCircle, ArrowLeft, ArrowRight, Loader, User, Calendar, FileText, Clipboard, Truck, Wrench, Check, CheckSquare, Upload, AlertTriangle, Users } from 'lucide-react';
+import { Shield, Eye, Flame, MapPin, CheckCircle, ArrowLeft, ArrowRight, Loader, User, Calendar, FileText, Clipboard, Truck, Wrench, Check, CheckSquare, Upload, AlertTriangle, Users, X, ZoomIn, Maximize2, ExternalLink } from 'lucide-react';
 import MapComponent from './MapComponent';
 
 const API_BASE = 'http://localhost:5000/api';
@@ -36,6 +36,20 @@ export default function AdminDashboard({ token, onBackToLanding }) {
   const [evidenceFile, setEvidenceFile] = useState(null);
   const [actionNotes, setActionNotes] = useState('');
   const [submittingAction, setSubmittingAction] = useState(false);
+
+  // Image Lightbox Popup Modal State
+  const [modalImage, setModalImage] = useState(null);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setModalImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -415,13 +429,59 @@ export default function AdminDashboard({ token, onBackToLanding }) {
                   
                   {selectedDetails.incident.resolution_evidence_url && (
                     <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-light)', paddingTop: '12px' }}>
-                      <strong>Resolution Evidence Proof:</strong>
-                      <div style={{ width: '100%', height: '140px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-light)', marginTop: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong>Resolution Evidence Proof:</strong>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--primary-neon)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <ZoomIn size={14} /> Click to Enlarge
+                        </span>
+                      </div>
+                      <div 
+                        onClick={() => setModalImage({
+                          url: `http://localhost:5000${selectedDetails.incident.resolution_evidence_url}`,
+                          title: 'Resolution Proof Evidence',
+                          subtitle: selectedDetails.incident.assigned_worker ? `Resolved by ${selectedDetails.incident.assigned_worker}` : 'Authority Resolution Evidence',
+                          description: selectedDetails.incident.dispatch_notes || 'Official proof of work completion.',
+                          badge: 'Resolution Proof'
+                        })}
+                        style={{ 
+                          width: '100%', 
+                          height: '150px', 
+                          borderRadius: '8px', 
+                          overflow: 'hidden', 
+                          border: '1px solid var(--border-light)', 
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'transform 0.2s ease, border-color 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--primary-neon)';
+                          e.currentTarget.style.transform = 'scale(1.01)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border-light)';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      >
                         <img 
                           src={`http://localhost:5000${selectedDetails.incident.resolution_evidence_url}`} 
                           alt="Resolution Proof" 
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                         />
+                        <div style={{ 
+                          position: 'absolute', 
+                          bottom: 0, 
+                          left: 0, 
+                          right: 0, 
+                          background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', 
+                          padding: '6px 10px', 
+                          fontSize: '0.75rem', 
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <Maximize2 size={13} style={{ color: 'var(--primary-neon)' }} /> View Full Image
+                        </div>
                       </div>
                     </div>
                   )}
@@ -616,16 +676,64 @@ export default function AdminDashboard({ token, onBackToLanding }) {
                           borderRadius: '10px', 
                           padding: '12px',
                           display: 'grid',
-                          gridTemplateColumns: '80px 1fr',
-                          gap: '12px'
+                          gridTemplateColumns: '90px 1fr',
+                          gap: '12px',
+                          alignItems: 'start'
                         }}
                       >
-                        <div style={{ height: '70px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
+                        {/* Clickable Image Thumbnail with Zoom Overlay */}
+                        <div 
+                          onClick={() => setModalImage({
+                            url: `http://localhost:5000${rep.image_url}`,
+                            title: `Citizen Evidence — ${rep.citizen_name}`,
+                            subtitle: `Reported on ${new Date(rep.created_at).toLocaleString()}`,
+                            description: rep.description || 'No additional user notes provided.',
+                            summary: rep.ai_summary,
+                            badge: 'Citizen Evidence',
+                            problem: rep.ai_problem,
+                            category: rep.ai_category,
+                            severity: rep.ai_severity
+                          })}
+                          style={{ 
+                            height: '80px', 
+                            borderRadius: '8px', 
+                            overflow: 'hidden', 
+                            border: '1px solid var(--border-light)',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'all 0.2s ease',
+                            background: 'rgba(0,0,0,0.3)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--primary-neon)';
+                            e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 242, 254, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border-light)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                          title="Click to view full-size image"
+                        >
                           <img 
                             src={`http://localhost:5000${rep.image_url}`} 
                             alt="Citizen evidence" 
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                           />
+                          <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(0,0,0,0.35)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: 0,
+                            transition: 'opacity 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                          >
+                            <ZoomIn size={20} color="#fff" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }} />
+                          </div>
                         </div>
                         
                         <div style={{ fontSize: '0.8rem' }}>
@@ -635,10 +743,10 @@ export default function AdminDashboard({ token, onBackToLanding }) {
                               {new Date(rep.created_at).toLocaleDateString()}
                             </span>
                           </div>
-                          <div style={{ color: 'var(--text-muted)', marginBottom: '4px', fontStyle: 'italic' }}>
+                          <div style={{ color: 'var(--text-muted)', marginBottom: '6px', fontStyle: 'italic' }}>
                             "{rep.description || 'No description'}"
                           </div>
-                          <div style={{ fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px', color: 'var(--primary-neon)' }}>
+                          <div style={{ fontSize: '0.75rem', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(0,242,254,0.1)', padding: '5px 8px', borderRadius: '6px', color: 'var(--primary-neon)', lineHeight: 1.4 }}>
                             <strong>AI Summary:</strong> {rep.ai_summary}
                           </div>
                         </div>
@@ -685,6 +793,162 @@ export default function AdminDashboard({ token, onBackToLanding }) {
         )}
 
       </div>
+
+      {/* ─── Lightbox Image Popup Modal ─── */}
+      {modalImage && (
+        <div 
+          onClick={() => setModalImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="glass-card"
+            style={{
+              maxWidth: '850px',
+              width: '100%',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '0',
+              overflow: 'hidden',
+              background: 'var(--bg-main)',
+              border: '1px solid rgba(0, 242, 254, 0.4)',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 242, 254, 0.15)',
+              position: 'relative'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-light)',
+              background: 'rgba(255, 255, 255, 0.02)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  background: modalImage.badge === 'Resolution Proof' ? 'rgba(0, 230, 118, 0.15)' : 'rgba(0, 242, 254, 0.15)',
+                  color: modalImage.badge === 'Resolution Proof' ? 'var(--color-low)' : 'var(--primary-neon)',
+                  border: `1px solid ${modalImage.badge === 'Resolution Proof' ? 'rgba(0, 230, 118, 0.3)' : 'rgba(0, 242, 254, 0.3)'}`
+                }}>
+                  {modalImage.badge}
+                </span>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', color: '#fff', margin: 0 }}>
+                    {modalImage.title}
+                  </h3>
+                  {modalImage.subtitle && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {modalImage.subtitle}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a 
+                  href={modalImage.url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="btn btn-secondary" 
+                  style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <ExternalLink size={13} /> Open Tab
+                </a>
+                <button 
+                  onClick={() => setModalImage(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 0, 85, 0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                  title="Close (Esc)"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Image Area */}
+            <div style={{
+              background: '#070b13',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              maxHeight: '58vh',
+              overflow: 'hidden',
+              padding: '12px'
+            }}>
+              <img 
+                src={modalImage.url} 
+                alt="Enlarged Evidence" 
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '55vh',
+                  objectFit: 'contain',
+                  borderRadius: '6px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+                }}
+              />
+            </div>
+
+            {/* Modal Details / Meta Info */}
+            <div style={{
+              padding: '16px 20px',
+              borderTop: '1px solid var(--border-light)',
+              background: 'rgba(255, 255, 255, 0.02)',
+              fontSize: '0.85rem'
+            }}>
+              {modalImage.description && (
+                <div style={{ marginBottom: '8px', color: 'var(--text-muted)' }}>
+                  <strong style={{ color: '#fff' }}>User Description:</strong> "{modalImage.description}"
+                </div>
+              )}
+              {modalImage.summary && (
+                <div style={{
+                  background: 'rgba(0, 242, 254, 0.06)',
+                  border: '1px solid rgba(0, 242, 254, 0.2)',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  color: 'var(--primary-neon)',
+                  fontSize: '0.8rem',
+                  lineHeight: 1.4
+                }}>
+                  <strong>AI Analysis Summary:</strong> {modalImage.summary}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
