@@ -24,6 +24,33 @@ function decodeSupabaseToken(token) {
   }
 }
 
+const { query } = require('../db');
+
+// Upsert user into local SQLite database so foreign keys (reports, history) always resolve
+function ensureUserInDb(user) {
+  if (!user || !user.id) return;
+  try {
+    const existing = query.get('SELECT id FROM users WHERE id = ?', [user.id]);
+    if (!existing) {
+      // Check if same email exists with different ID (e.g. from previous demo seeder)
+      const emailMatch = query.get('SELECT id FROM users WHERE email = ?', [user.email]);
+      if (emailMatch) {
+        query.run(
+          'UPDATE users SET id = ?, name = ?, role = ? WHERE email = ?',
+          [user.id, user.name || user.email, user.role || 'civilian', user.email]
+        );
+      } else {
+        query.run(
+          'INSERT INTO users (id, email, password_hash, role, name, created_at) VALUES (?, ?, NULL, ?, ?, ?)',
+          [user.id, user.email, user.role || 'civilian', user.name || user.email, new Date().toISOString()]
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('[Auth Middleware] User DB sync warning:', err.message);
+  }
+}
+
 // Middleware to authenticate JWT (supports both local and Supabase tokens)
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -38,6 +65,7 @@ function authenticateToken(req, res, next) {
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (!err && user) {
       req.user = user;
+      ensureUserInDb(user);
       return next();
     }
 
@@ -45,6 +73,7 @@ function authenticateToken(req, res, next) {
     const supabaseUser = decodeSupabaseToken(token);
     if (supabaseUser) {
       req.user = supabaseUser;
+      ensureUserInDb(supabaseUser);
       return next();
     }
 
@@ -59,6 +88,7 @@ function requireAuth(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized: Authentication required.' });
   }
+  ensureUserInDb(req.user);
   next();
 }
 
