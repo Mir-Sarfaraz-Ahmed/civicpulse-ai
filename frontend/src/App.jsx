@@ -30,6 +30,30 @@ export default function App() {
     return 'civilian';
   };
 
+  const resolveName = (supaUser) => {
+    if (!supaUser) return 'Citizen';
+    const metaName = supaUser.user_metadata?.name || supaUser.user_metadata?.full_name;
+    if (metaName && metaName.trim() && !metaName.includes('@')) {
+      return metaName.trim();
+    }
+    // Check locally saved name cache for this account
+    try {
+      const cached = localStorage.getItem(`civicpulse_name_${supaUser.id}`) || localStorage.getItem(`civicpulse_name_${supaUser.email}`);
+      if (cached && cached.trim()) return cached.trim();
+    } catch (e) {}
+
+    // Formatted name from email prefix (e.g. mirsarfarazahmedpw -> Mir Sarfaraz Ahmed)
+    const emailPrefix = (supaUser.email || '').split('@')[0] || '';
+    if (emailPrefix) {
+      const cleaned = emailPrefix.replace(/[._-]/g, ' ').replace(/\d+/g, '').replace(/pw$/i, '').trim();
+      if (cleaned.length > 2) {
+        return cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      }
+      return emailPrefix;
+    }
+    return 'Citizen';
+  };
+
   // Verify Supabase session on load — protect private pages
   useEffect(() => {
     const checkSession = async () => {
@@ -37,8 +61,9 @@ export default function App() {
       if (session) {
         const sessionUser = session.user;
         const role = resolveRole(sessionUser);
+        const displayName = resolveName(sessionUser);
         setToken(session.access_token);
-        setUser({ id: sessionUser.id, email: sessionUser.email, name: sessionUser.user_metadata?.name || sessionUser.email, role });
+        setUser({ id: sessionUser.id, email: sessionUser.email, name: displayName, role });
       } else {
         // No active Supabase session — clear any stale local data
         localStorage.removeItem('civicpulse_token');
@@ -108,6 +133,7 @@ export default function App() {
     setErrorMsg(null);
     
     const assignedRole = email.toLowerCase().includes('admin') || email.toLowerCase().endsWith('@civilpulse.gov.in') ? 'admin' : 'civilian';
+    const submittedName = name.trim();
 
     try {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -115,7 +141,8 @@ export default function App() {
         password,
         options: {
           data: {
-            name: name || email,
+            name: submittedName || email.split('@')[0],
+            full_name: submittedName || email.split('@')[0],
             role: assignedRole
           }
         }
@@ -126,12 +153,21 @@ export default function App() {
         return;
       }
 
+      // Cache name locally for immediate retrieval
+      if (submittedName) {
+        localStorage.setItem(`civicpulse_name_${email}`, submittedName);
+        if (signUpData?.user?.id) {
+          localStorage.setItem(`civicpulse_name_${signUpData.user.id}`, submittedName);
+        }
+      }
+
       // If Supabase returned a session directly (email confirmation disabled)
       if (signUpData.session) {
         const sessionUser = signUpData.user;
         const sessionToken = signUpData.session.access_token;
         const role = resolveRole(sessionUser);
-        saveAuthSession(sessionToken, { id: sessionUser.id, email: sessionUser.email, name: name || sessionUser.email, role });
+        const displayName = submittedName || resolveName(sessionUser);
+        saveAuthSession(sessionToken, { id: sessionUser.id, email: sessionUser.email, name: displayName, role });
         setPage(role === 'admin' ? 'admin' : 'civilian');
         return;
       }
@@ -163,7 +199,8 @@ export default function App() {
         const sessionUser = data.user;
         const sessionToken = data.session?.access_token || '';
         const role = resolveRole(sessionUser);
-        saveAuthSession(sessionToken, { id: sessionUser.id, email: sessionUser.email, name: sessionUser.user_metadata?.name || sessionUser.email, role });
+        const displayName = resolveName(sessionUser);
+        saveAuthSession(sessionToken, { id: sessionUser.id, email: sessionUser.email, name: displayName, role });
         if (role === 'admin') {
           setPage('admin');
         } else {
