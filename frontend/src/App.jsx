@@ -96,10 +96,7 @@ export default function App() {
     
     // Quick fill helper for admin login option
     if (targetPage === 'login') {
-      if (options.defaultAdmin) {
-        setEmail('admin@gmail.com');
-        setPassword('31102006');
-      } else if (!options.keepEmail) {
+      if (!options.keepEmail) {
         // Only clear email if not coming from a signup redirect
         setEmail('');
         setPassword('');
