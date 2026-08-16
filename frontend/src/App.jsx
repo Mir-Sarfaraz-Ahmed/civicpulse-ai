@@ -376,15 +376,10 @@ export default function App() {
                 onClick={handleTriggerSeeding} 
                 disabled={seedingLoading}
                 className="btn btn-secondary" 
-                style={{ width: '100%', padding: '6px 12px', fontSize: '0.75rem', marginBottom: '8px', background: 'rgba(0, 242, 254, 0.05)', borderColor: 'rgba(0, 242, 254, 0.2)' }}
+                style={{ width: '100%', padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(0, 242, 254, 0.05)', borderColor: 'rgba(0, 242, 254, 0.2)' }}
               >
                 {seedingLoading ? 'Seeding Database...' : 'Seed Delhi Demo Incidents'}
               </button>
-
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div>🔑 Admin: <span style={{ color: '#fff', fontFamily: 'monospace' }}>admin@gmail.com</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>31102006</span></div>
-                <div>👤 Civilian: <span style={{ color: '#fff', fontFamily: 'monospace' }}>civilian@gmail.com</span> / <span style={{ color: '#fff', fontFamily: 'monospace' }}>31102006</span></div>
-              </div>
             </div>
 
             <button onClick={() => setPage('landing')} className="btn btn-secondary" style={{ width: '100%', marginTop: '16px', padding: '8px', fontSize: '0.8rem' }}>
