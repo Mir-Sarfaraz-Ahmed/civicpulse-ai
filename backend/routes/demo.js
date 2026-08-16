@@ -437,4 +437,26 @@ router.post('/seed', (req, res) => {
   }
 });
 
+// Clear Route (Public, to clean up/reset the database easily)
+// Endpoint: POST /api/demo/clear
+router.post('/clear', (req, res) => {
+  try {
+    console.log('[Demo Clear] Starting database clearing...');
+    query.exec('PRAGMA foreign_keys = OFF;');
+    query.exec('DELETE FROM incident_status_history;');
+    query.exec('DELETE FROM reports;');
+    query.exec('DELETE FROM incidents;');
+    query.exec('DELETE FROM users;');
+    query.exec('PRAGMA foreign_keys = ON;');
+    console.log('[Demo Clear] Database cleared successfully.');
+    res.json({
+      success: true,
+      message: 'Demo database cleared successfully.'
+    });
+  } catch (err) {
+    console.error('[Demo Clear Error] Clearing failed:', err);
+    res.status(500).json({ error: 'Internal server error clearing database.' });
+  }
+});
+
 module.exports = router;

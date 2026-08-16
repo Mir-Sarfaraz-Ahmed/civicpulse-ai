@@ -14,6 +14,7 @@ export default function App() {
   const [successMsg, setSuccessMsg] = useState(null);
   const [loading, setLoading] = useState(false);
   const [seedingLoading, setSeedingLoading] = useState(false);
+  const [clearingLoading, setClearingLoading] = useState(false);
 
 
   // Login Form States
@@ -242,6 +243,31 @@ export default function App() {
     }
   };
 
+  // Clear Demo Data directly from Login/Landing pages
+  const handleTriggerClear = async () => {
+    setClearingLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const response = await fetch(`${API_BASE}/demo/clear`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSuccessMsg('Demo database cleared successfully! All incidents removed.');
+        setEmail('');
+        setPassword('');
+      } else {
+        setErrorMsg(data.error || 'Clearing failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Network error executing clear.');
+    } finally {
+      setClearingLoading(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
@@ -371,15 +397,26 @@ export default function App() {
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', color: 'var(--primary-neon)', fontWeight: 600, marginBottom: '10px' }}>
                 <Database size={14} /> Hackathon Seeder Controls
               </div>
-              <button 
-                type="button" 
-                onClick={handleTriggerSeeding} 
-                disabled={seedingLoading}
-                className="btn btn-secondary" 
-                style={{ width: '100%', padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(0, 242, 254, 0.05)', borderColor: 'rgba(0, 242, 254, 0.2)' }}
-              >
-                {seedingLoading ? 'Seeding Database...' : 'Seed Delhi Demo Incidents'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  type="button" 
+                  onClick={handleTriggerSeeding} 
+                  disabled={seedingLoading || clearingLoading}
+                  className="btn btn-secondary" 
+                  style={{ flex: 1, padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(0, 242, 254, 0.05)', borderColor: 'rgba(0, 242, 254, 0.2)', whiteSpace: 'nowrap' }}
+                >
+                  {seedingLoading ? 'Seeding...' : 'Seed Demo'}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleTriggerClear} 
+                  disabled={seedingLoading || clearingLoading}
+                  className="btn btn-secondary" 
+                  style={{ flex: 1, padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(255, 0, 85, 0.05)', borderColor: 'rgba(255, 0, 85, 0.2)', color: '#ff4d88', whiteSpace: 'nowrap' }}
+                >
+                  {clearingLoading ? 'Clearing...' : 'Undo Seed'}
+                </button>
+              </div>
             </div>
 
             <button onClick={() => setPage('landing')} className="btn btn-secondary" style={{ width: '100%', marginTop: '16px', padding: '8px', fontSize: '0.8rem' }}>
