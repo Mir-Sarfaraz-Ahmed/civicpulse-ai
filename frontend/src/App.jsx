@@ -231,7 +231,6 @@ export default function App() {
         setSuccessMsg('Demo database seeded successfully! Mock incidents created.');
         // Set demo admin credentials automatically for ease
         setEmail('admin@gmail.com');
-        setPassword('31102006');
       } else {
         setErrorMsg(data.error || 'Seeding failed.');
       }
